@@ -477,6 +477,13 @@ export async function ensureRepo(config) {
   writeFileSync(join(REPO_DIR, 'README.md'), buildReadme(config), 'utf8');
 }
 
+function localTimestamp() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
+         `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 export async function push(config, commitMessage) {
   if (!existsSync(REPO_DIR)) {
     log.error('Repo not set up. Run: claude-code-backup init');
@@ -524,7 +531,7 @@ export async function push(config, commitMessage) {
 
   spin.text = `Committing ${status.files.length} change(s)...`;
   await g.add('-A');
-  await g.commit(commitMessage || `backup: ${new Date().toISOString()}`);
+  await g.commit(commitMessage || `backup: ${localTimestamp()}`);
 
   spin.text = 'Pushing to GitHub...';
   await g.raw(['push', '-u', 'origin', config.github.branch]);
