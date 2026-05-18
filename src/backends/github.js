@@ -191,21 +191,25 @@ Interactive setup wizard. Run this once (or again to reconfigure).
 \`\`\`
 $ claude-code-backup init
 
-Step 1 of 3 — GitHub Personal Access Token
-  Create your token here: https://github.com/settings/tokens/new
-  Required scope: repo (top-level checkbox)
+Step 1 of 4 — GitHub Authentication
+  Checking for existing GitHub credentials...
+  ✔ Found: git credential helper (osxkeychain) — using system credentials.
+  No GitHub token needed — git will authenticate automatically.
 
-? Paste your GitHub PAT: ****
-
-Step 2 of 3 — Repository & Branch
+Step 2 of 4 — Repository & Branch
 ? GitHub repo name: yourname/claude-code-backup
 ? Branch name: main
 
-Step 3 of 3 — Watched Directories & Filters
+Step 3 of 4 — Watched Directories & Filters
 ? Directories to watch: ~/.claude
 ? Files to exclude: settings.local.json, *.log, .DS_Store
 ? Debounce delay in ms: 2000
+
+Step 4 of 4 — Project CLAUDE.md Files
+? Project root directories with CLAUDE.md (blank to skip):
 \`\`\`
+
+Step 1 auto-detects your credentials in this order: SSH key → GitHub CLI → system credential helper (osxkeychain, etc.) → falls back to asking for a Personal Access Token only if nothing is found.
 
 What it does:
 - Saves config to \`~/.config/claude-code-backup/config.json\` (chmod 600)
@@ -381,7 +385,7 @@ npm install -g claude-code-backup
 # 2. Run init with the same GitHub repo
 claude-code-backup init
 #    → Same repo name (yourname/claude-code-backup)
-#    → New GitHub PAT (generate a new one)
+#    → Auth is auto-detected from your system credentials
 
 # 3. Pull the latest backup
 claude-code-backup pull
@@ -409,7 +413,8 @@ Config file location: \`~/.config/claude-code-backup/config.json\`
 | \`backend\` | string | \`"github"\` | Storage backend (currently only \`github\`) |
 | \`github.repo\` | string | — | GitHub repo in \`owner/name\` format |
 | \`github.branch\` | string | \`"main"\` | Branch to push to |
-| \`github.pat\` | string | — | Personal Access Token (stored chmod 600) |
+| \`auth_method\` | string | auto-detected | \`"system"\` · \`"ssh"\` · \`"pat"\` |
+| \`github.pat\` | string | — | Personal Access Token — only stored when \`auth_method\` is \`"pat"\` |
 | \`watched_dirs\` | string[] | \`["~/.claude"]\` | Directories to fully mirror |
 | \`claude_md_dirs\` | string[] | \`[]\` | Project roots — only \`CLAUDE.md\` is backed up from each |
 | \`exclude\` | string[] | see below | Filenames/globs to skip |
@@ -424,10 +429,10 @@ The local repo clone lives at: \`~/.config/claude-code-backup/repo/\`
 ## Security Notes
 
 - This repo is **private** — only you and anyone you explicitly invite can see it
-- Your GitHub PAT is stored locally at \`~/.config/claude-code-backup/config.json\` with \`chmod 600\` (owner-read only)
-- The PAT is never committed to this repo
+- Config is stored at \`~/.config/claude-code-backup/config.json\` with \`chmod 600\` (owner-read only)
+- For \`auth_method: "system"\` or \`"ssh"\` — no token is stored in the config file; credentials stay in your system keychain or SSH agent
+- For \`auth_method: "pat"\` — the PAT is stored locally in config (chmod 600) and never committed to this repo
 - \`settings.local.json\` is excluded by default because it may contain machine-specific or sensitive values
-- If you ever rotate your PAT, run \`claude-code-backup config set github.pat <new-token>\` then \`claude-code-backup service install\` to restart the watcher with the new token
 
 ---
 
@@ -437,11 +442,17 @@ The local repo clone lives at: \`~/.config/claude-code-backup/repo/\`
 The config file is missing or incomplete. Re-run \`claude-code-backup init\`.
 
 **Push fails with authentication error**
-Your PAT may have expired or been revoked. Generate a new one at
-https://github.com/settings/tokens/new and run:
+Check which auth method is in use:
 \`\`\`bash
-claude-code-backup config set github.pat <new-token>
+claude-code-backup config show   # look at "auth_method"
 \`\`\`
+- \`system\` — re-authenticate with your credential helper (e.g. \`gh auth login\`) then retry.
+- \`pat\` — your token may have expired. Generate a new one and update:
+  \`\`\`bash
+  claude-code-backup config set github.pat <new-token>
+  claude-code-backup service install   # restart the watcher
+  \`\`\`
+- Still failing? Re-run \`claude-code-backup init\` to re-detect credentials.
 
 **Service shows "loaded but not running"**
 Check the error log:

@@ -34,6 +34,7 @@ None of this is synced by Anthropic. A new machine, an accidental `rm -rf ~/.cla
 - **Project CLAUDE.md support** — backs up per-project `CLAUDE.md` files without touching your source code
 - **Safe restore** — always creates a local snapshot of your current state before overwriting anything
 - **macOS auto-start** — installs as a launchd service so the watcher starts on every login with `KeepAlive`
+- **Zero credential setup** — auto-detects SSH keys, GitHub CLI, or macOS Keychain; only asks for a token if nothing is found
 - **Interactive setup** — guided wizard creates the GitHub repo for you if it doesn't exist
 - **Configurable** — choose which dirs to watch, which files to exclude, debounce timing
 - **Private by default** — your backup repo is always created as private
@@ -44,7 +45,7 @@ None of this is synced by Anthropic. A new machine, an accidental `rm -rf ~/.cla
 
 - **Node.js** 18 or later
 - **macOS** (launchd service feature; file watching works on Linux/Windows too)
-- **GitHub account** with a Personal Access Token
+- **GitHub account** — no token setup needed if you already use git with GitHub
 
 ---
 
@@ -85,21 +86,11 @@ $ claude-code-backup init
 
 Claude Backup — Setup Wizard
 
-Step 1 of 4 — GitHub Personal Access Token
+Step 1 of 4 — GitHub Authentication
 
-  claude-code-backup needs a PAT with "repo" scope to create
-  and push to a private GitHub repository on your behalf.
-
-  Create your token here:
-  https://github.com/settings/tokens/new
-
-  Instructions:
-  1. Note name → e.g. "claude-code-backup"
-  2. Expiration → your preference (No expiration is fine)
-  3. Scopes → tick  repo  (the top-level checkbox)
-  4. Click "Generate token" and copy the value
-
-? Paste your GitHub PAT: ****
+  Checking for existing GitHub credentials...
+  ✔ Found: git credential helper (osxkeychain) — using system credentials.
+  No GitHub token needed — git will authenticate automatically.
 
 Step 2 of 4 — Repository & Branch
 ? GitHub repo name (e.g. yourname/claude-code-backup): yourname/claude-code-backup
@@ -118,6 +109,17 @@ Step 4 of 4 — Project CLAUDE.md Files
 ✔ Repo cloned
 ✔ GitHub setup complete
 ```
+
+**Step 1 detects your existing credentials automatically** — in order:
+
+| Priority | Method | Detected when |
+|---|---|---|
+| 1 | SSH key | `~/.ssh/id_*.pub` exists |
+| 2 | GitHub CLI | `gh auth status` shows logged in |
+| 3 | macOS Keychain / system helper | `git credential fill` returns a token |
+| 4 | Personal Access Token (fallback) | none of the above found |
+
+If none are found, the wizard shows instructions for creating a PAT and prompts you to paste it.
 
 The wizard:
 - Creates the GitHub repo as **private** if it doesn't exist
@@ -321,13 +323,19 @@ Config file: `~/.config/claude-code-backup/config.json` (chmod 600)
 |---|---|---|---|
 | `github.repo` | string | — | GitHub repo in `owner/name` format |
 | `github.branch` | string | `"main"` | Branch to push to |
-| `github.pat` | string | — | Personal Access Token (never committed) |
+| `auth_method` | string | auto-detected | `"system"` · `"ssh"` · `"pat"` |
+| `github.pat` | string | — | Personal Access Token — only stored when `auth_method` is `"pat"` |
 | `watched_dirs` | string[] | `["~/.claude"]` | Directories to fully mirror |
 | `claude_md_dirs` | string[] | `[]` | Project roots — only `CLAUDE.md` backed up |
 | `exclude` | string[] | see below | Filenames/globs to skip |
 | `auto_sync.debounce_ms` | number | `2000` | ms to wait after last change before pushing |
 
 Default excludes: `settings.local.json`, `*.log`, `.DS_Store`
+
+**Auth methods:**
+- `system` — git uses your system credential helper (macOS Keychain, gh CLI, GNOME Keyring). No token stored in config.
+- `ssh` — git uses SSH keys. No token stored in config.
+- `pat` — a Personal Access Token is embedded in git operations and stored locally in config (chmod 600).
 
 Local repo clone: `~/.config/claude-code-backup/repo/`
 
@@ -345,7 +353,7 @@ claude-code-backup pull
 
 ```bash
 npm install -g claude-code-backup
-claude-code-backup init      # use same repo name, generate a new PAT
+claude-code-backup init      # use the same repo name; auth is auto-detected from your credentials
 claude-code-backup pull
 claude-code-backup service install
 ```
@@ -372,14 +380,22 @@ ls ~/.config/claude-code-backup/pre-restore-*/
 ## Troubleshooting
 
 **"Not configured. Run: claude-code-backup init"**
-Config file is missing. Re-run `claude-code-backup init`.
+Config file is missing or incomplete. Re-run `claude-code-backup init`.
 
 **Push fails with 401 or authentication error**
-Your PAT may have expired. Generate a new one and update:
+
+Check which auth method is configured:
 ```bash
-claude-code-backup config set github.pat <new-token>
-claude-code-backup service install   # restart the watcher with the new token
+claude-code-backup config show   # look at "auth_method"
 ```
+
+- `system` — your system credentials for `github.com` may have expired. Re-authenticate via your credential helper (e.g. `gh auth login` or sign in via macOS Keychain) then try again.
+- `pat` — your Personal Access Token may have expired. Generate a new one at [github.com/settings/tokens](https://github.com/settings/tokens) and update:
+  ```bash
+  claude-code-backup config set github.pat <new-token>
+  claude-code-backup service install   # restart the watcher
+  ```
+- Still failing? Re-run `claude-code-backup init` — it will re-detect your credentials and reconfigure.
 
 **Service shows "loaded but not running"**
 ```bash

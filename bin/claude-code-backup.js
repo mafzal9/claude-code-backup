@@ -12,7 +12,7 @@ import { runConfig } from '../src/commands/config-cmd.js';
 program
   .name('claude-code-backup')
   .description('Backup and auto-sync Claude Code memory and settings to GitHub')
-  .version('1.0.6');
+  .version('1.0.7');
 
 program
   .command('init')
