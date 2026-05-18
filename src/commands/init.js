@@ -2,39 +2,87 @@ import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { homedir } from 'os';
 import { join } from 'path';
+import { promisify } from 'util';
+import { exec } from 'child_process';
 import { loadConfig, saveConfig } from '../core/config.js';
 import { ensureRepo } from '../backends/github.js';
 import { log } from '../utils/logger.js';
+
+const execAsync = promisify(exec);
+
+async function detectAuth() {
+  // 1. SSH key present
+  try {
+    const { stdout } = await execAsync('ls ~/.ssh/id_*.pub 2>/dev/null | head -1');
+    if (stdout.trim()) {
+      return { method: 'ssh', label: `SSH key (${stdout.trim().split('/').pop()})` };
+    }
+  } catch {}
+
+  // 2. gh CLI authenticated
+  try {
+    const { stdout } = await execAsync('gh auth status 2>&1');
+    if (/Logged in/i.test(stdout)) {
+      return { method: 'system', label: 'GitHub CLI (gh auth)' };
+    }
+  } catch {}
+
+  // 3. git credential helper has a GitHub token
+  try {
+    const { stdout } = await execAsync(
+      'printf "protocol=https\\nhost=github.com\\n" | git credential fill 2>/dev/null'
+    );
+    const match = stdout.match(/^password=(.+)$/m);
+    if (match?.[1]?.trim()) {
+      const helper = await execAsync('git config --global credential.helper 2>/dev/null')
+        .then(r => r.stdout.trim() || 'system')
+        .catch(() => 'system');
+      return { method: 'system', label: `git credential helper (${helper})` };
+    }
+  } catch {}
+
+  return { method: 'pat', label: null };
+}
 
 export async function runInit() {
   log.header('Claude Backup — Setup Wizard');
 
   const existing = loadConfig();
 
-  // ── Step 1: GitHub PAT ───────────────────────────────────────────────────
-  console.log(chalk.bold.underline('Step 1 of 4 — GitHub Personal Access Token') + '\n');
-  console.log('claude-code-backup needs a PAT with ' + chalk.cyan('"repo"') + ' scope to create');
-  console.log('and push to a private GitHub repository on your behalf.\n');
-  console.log(chalk.bold('  Create your token here:'));
-  console.log('  ' + chalk.underline.blue('https://github.com/settings/tokens/new') + '\n');
-  console.log(chalk.dim('  Instructions:'));
-  console.log(chalk.dim('  1. Note name → e.g. "claude-code-backup"'));
-  console.log(chalk.dim('  2. Expiration → your preference (No expiration is fine)'));
-  console.log(chalk.dim('  3. Scopes → tick  ') + chalk.cyan('repo') + chalk.dim('  (the top-level checkbox covers everything needed)'));
-  console.log(chalk.dim('  4. Click "Generate token" and copy the value\n'));
-  console.log(chalk.dim('  Fine-grained token alternative:'));
-  console.log(chalk.dim('  ' + chalk.underline('https://github.com/settings/personal-access-tokens/new')));
-  console.log(chalk.dim('  → Repository permissions: Contents (Read & Write), Metadata (Read)\n'));
+  // ── Step 1: Auth detection ───────────────────────────────────────────────
+  console.log(chalk.bold.underline('Step 1 of 4 — GitHub Authentication') + '\n');
+  console.log(chalk.dim('  Checking for existing GitHub credentials...\n'));
 
-  const { pat } = await inquirer.prompt([
-    {
-      type: 'password',
-      name: 'pat',
-      message: 'Paste your GitHub PAT:',
-      default: existing?.github?.pat || '',
-      validate: v => v.trim().length > 0 || 'PAT is required',
-    },
-  ]);
+  const detected = await detectAuth();
+  let pat = '';
+  let authMethod = detected.method;
+
+  if (detected.method !== 'pat') {
+    console.log(chalk.green('  ✔') + ' Found: ' + chalk.cyan(detected.label));
+    console.log(chalk.dim('  Git will authenticate automatically — no token needed.\n'));
+  } else {
+    console.log(chalk.yellow('  ✗') + ' No system GitHub auth detected.\n');
+    console.log('claude-code-backup needs a PAT with ' + chalk.cyan('"repo"') + ' scope to create');
+    console.log('and push to a private GitHub repository on your behalf.\n');
+    console.log(chalk.bold('  Create your token here:'));
+    console.log('  ' + chalk.underline.blue('https://github.com/settings/tokens/new') + '\n');
+    console.log(chalk.dim('  Instructions:'));
+    console.log(chalk.dim('  1. Note name → e.g. "claude-code-backup"'));
+    console.log(chalk.dim('  2. Expiration → your preference (No expiration is fine)'));
+    console.log(chalk.dim('  3. Scopes → tick  ') + chalk.cyan('repo') + chalk.dim('  (the top-level checkbox)'));
+    console.log(chalk.dim('  4. Click "Generate token" and copy the value\n'));
+
+    const { patInput } = await inquirer.prompt([
+      {
+        type: 'password',
+        name: 'patInput',
+        message: 'Paste your GitHub PAT:',
+        default: existing?.github?.pat || '',
+        validate: v => v.trim().length > 0 || 'PAT is required',
+      },
+    ]);
+    pat = patInput.trim();
+  }
 
   // ── Step 2: Repo & branch ────────────────────────────────────────────────
   console.log('\n' + chalk.bold.underline('Step 2 of 4 — Repository & Branch') + '\n');
@@ -111,10 +159,11 @@ export async function runInit() {
   const config = {
     backend: 'github',
     github: {
-      pat: pat.trim(),
       repo: repo.trim(),
       branch: branch.trim(),
+      ...(pat ? { pat } : {}),
     },
+    auth_method: authMethod,
     watched_dirs,
     claude_md_dirs,
     exclude,

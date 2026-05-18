@@ -33,7 +33,8 @@ export function saveConfig(config) {
 
 export function requireConfig() {
   const config = loadConfig();
-  if (!config || !config.github?.pat || !config.github?.repo) {
+  // Require repo; require PAT only for legacy configs without auth_method
+  if (!config || !config.github?.repo || (!config.auth_method && !config.github?.pat)) {
     console.error('Not configured. Run: claude-code-backup init');
     process.exit(1);
   }

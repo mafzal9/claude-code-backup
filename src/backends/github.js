@@ -1,14 +1,48 @@
 import { existsSync, mkdirSync, copyFileSync, writeFileSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
+import { promisify } from 'util';
+import { exec } from 'child_process';
 import simpleGit from 'simple-git';
 import { Octokit } from '@octokit/rest';
 import { REPO_DIR } from '../core/config.js';
 import { collectFiles, buildManifest } from '../core/collector.js';
 import { log, spinner } from '../utils/logger.js';
 
+const execAsync = promisify(exec);
+
 function remoteUrl(config) {
-  return `https://${config.github.pat}@github.com/${config.github.repo}.git`;
+  if (config.auth_method === 'ssh') {
+    return `git@github.com:${config.github.repo}.git`;
+  }
+  // Explicit PAT auth: embed as x-access-token:<PAT> (correct GitHub OAuth format,
+  // no credential prompt needed so it works in non-TTY/background service contexts)
+  if (config.auth_method === 'pat' && config.github?.pat) {
+    return `https://x-access-token:${config.github.pat}@github.com/${config.github.repo}.git`;
+  }
+  // System auth or legacy config: bare URL, credential helper (osxkeychain/gh) handles it
+  return `https://github.com/${config.github.repo}.git`;
+}
+
+async function getApiToken(config) {
+  if (config.github?.pat) return config.github.pat;
+
+  // Try git credential helper (osxkeychain, gh, gnome-keyring, etc.)
+  try {
+    const { stdout } = await execAsync(
+      'printf "protocol=https\\nhost=github.com\\n" | git credential fill'
+    );
+    const match = stdout.match(/^password=(.+)$/m);
+    if (match?.[1]?.trim()) return match[1].trim();
+  } catch {}
+
+  // Try gh CLI
+  try {
+    const { stdout } = await execAsync('gh auth token 2>/dev/null');
+    if (stdout.trim()) return stdout.trim();
+  } catch {}
+
+  return null;
 }
 
 function repoGit() {
@@ -438,29 +472,34 @@ Copy the files you need back from there manually.
 }
 
 export async function ensureRepo(config) {
-  const octokit = new Octokit({ auth: config.github.pat });
   const [owner, repo] = config.github.repo.split('/');
+  const token = await getApiToken(config);
 
-  // Check if repo exists, create it if not
-  let repoExists = false;
-  try {
-    await octokit.repos.get({ owner, repo });
-    repoExists = true;
-  } catch (err) {
-    if (err.status !== 404) throw err;
-  }
+  if (token) {
+    const octokit = new Octokit({ auth: token });
+    let repoExists = false;
+    try {
+      await octokit.repos.get({ owner, repo });
+      repoExists = true;
+    } catch (err) {
+      if (err.status !== 404) throw err;
+    }
 
-  if (!repoExists) {
-    const spin = spinner('Creating private GitHub repo...').start();
-    await octokit.repos.createForAuthenticatedUser({
-      name: repo,
-      private: true,
-      description: 'Claude Code backup — memory, settings, commands',
-      auto_init: true,
-    });
-    spin.succeed(`Created: github.com/${config.github.repo}`);
+    if (!repoExists) {
+      const spin = spinner('Creating private GitHub repo...').start();
+      await octokit.repos.createForAuthenticatedUser({
+        name: repo,
+        private: true,
+        description: 'Claude Code backup — memory, settings, commands',
+        auto_init: true,
+      });
+      spin.succeed(`Created: github.com/${config.github.repo}`);
+    } else {
+      log.info(`Repo exists: github.com/${config.github.repo}`);
+    }
   } else {
-    log.info(`Repo exists: github.com/${config.github.repo}`);
+    log.warn('No GitHub API token found — skipping repo creation check.');
+    log.dim('  Make sure the repo exists at github.com and your system git credentials are set up.');
   }
 
   // Clone locally if not already done
