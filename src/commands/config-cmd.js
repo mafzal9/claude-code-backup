@@ -26,7 +26,7 @@ export function runConfig(action, key, value) {
 function showConfig() {
   const config = loadConfig();
   if (!config) {
-    log.warn('Not configured yet. Run: claude-backup init');
+    log.warn('Not configured yet. Run: claude-code-backup init');
     return;
   }
   const safe = JSON.parse(JSON.stringify(config));
@@ -40,8 +40,8 @@ function showConfig() {
 
 function setConfig(key, value) {
   if (!key || value === undefined) {
-    log.error('Usage: claude-backup config set <key> <value>');
-    log.dim('Example: claude-backup config set auto_sync.debounce_ms 3000');
+    log.error('Usage: claude-code-backup config set <key> <value>');
+    log.dim('Example: claude-code-backup config set auto_sync.debounce_ms 3000');
     process.exit(1);
   }
   const config = requireConfig();
@@ -63,7 +63,7 @@ function setConfig(key, value) {
 
 function addDir(dirPath) {
   if (!dirPath) {
-    log.error('Usage: claude-backup config add-dir <path>');
+    log.error('Usage: claude-code-backup config add-dir <path>');
     process.exit(1);
   }
   const config = requireConfig();
@@ -79,7 +79,7 @@ function addDir(dirPath) {
 
 function removeDir(dirPath) {
   if (!dirPath) {
-    log.error('Usage: claude-backup config remove-dir <path>');
+    log.error('Usage: claude-code-backup config remove-dir <path>');
     process.exit(1);
   }
   const config = requireConfig();
@@ -98,7 +98,7 @@ function removeDir(dirPath) {
 
 function addProject(dirPath) {
   if (!dirPath) {
-    log.error('Usage: claude-backup config add-project <project-root-path>');
+    log.error('Usage: claude-code-backup config add-project <project-root-path>');
     log.dim('Only the CLAUDE.md file at that path will be backed up.');
     process.exit(1);
   }
@@ -117,7 +117,7 @@ function addProject(dirPath) {
 
 function removeProject(dirPath) {
   if (!dirPath) {
-    log.error('Usage: claude-backup config remove-project <project-root-path>');
+    log.error('Usage: claude-code-backup config remove-project <project-root-path>');
     process.exit(1);
   }
   const config = requireConfig();

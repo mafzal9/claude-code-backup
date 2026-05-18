@@ -1,13 +1,13 @@
 {
   "name": "claude-code-backup",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backup and auto-sync Claude Code memory, settings, and CLAUDE.md files to a private GitHub repo — with real-time file watching and macOS launchd auto-start",
   "type": "module",
   "bin": {
-    "claude-backup": "bin/claude-backup.js"
+    "claude-code-backup": "bin/claude-code-backup.js"
   },
   "files": [
-    "bin/",
+    "bin/claude-code-backup.js",
     "src/",
     "README.md",
     "LICENSE"

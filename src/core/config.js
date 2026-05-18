@@ -2,15 +2,15 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'fs';
 
-export const CONFIG_DIR = join(homedir(), '.config', 'claude-backup');
+export const CONFIG_DIR = join(homedir(), '.config', 'claude-code-backup');
 export const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 export const REPO_DIR = join(CONFIG_DIR, 'repo');
 export const LOG_FILE = join(CONFIG_DIR, 'watch.log');
 export const ERROR_LOG_FILE = join(CONFIG_DIR, 'watch.error.log');
 export const LAUNCHD_PLIST = join(
-  homedir(), 'Library', 'LaunchAgents', 'com.claude-backup.watch.plist'
+  homedir(), 'Library', 'LaunchAgents', 'com.claude-code-backup.watch.plist'
 );
-export const LAUNCHD_LABEL = 'com.claude-backup.watch';
+export const LAUNCHD_LABEL = 'com.claude-code-backup.watch';
 
 export function ensureConfigDir() {
   mkdirSync(CONFIG_DIR, { recursive: true });
@@ -34,7 +34,7 @@ export function saveConfig(config) {
 export function requireConfig() {
   const config = loadConfig();
   if (!config || !config.github?.pat || !config.github?.repo) {
-    console.error('Not configured. Run: claude-backup init');
+    console.error('Not configured. Run: claude-code-backup init');
     process.exit(1);
   }
   return config;

@@ -59,7 +59,7 @@ export async function runPull(options) {
     spin.stop();
 
     if (history.length === 0) {
-      log.warn('No commits found. Run: claude-backup push first');
+      log.warn('No commits found. Run: claude-code-backup push first');
       return;
     }
 

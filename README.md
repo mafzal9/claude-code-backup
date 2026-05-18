@@ -54,7 +54,7 @@ None of this is synced by Anthropic. A new machine, an accidental `rm -rf ~/.cla
 npm install -g claude-code-backup
 ```
 
-Installs the `claude-backup` command globally.
+Installs the `claude-code-backup` command globally.
 
 ---
 
@@ -62,16 +62,16 @@ Installs the `claude-backup` command globally.
 
 ```bash
 # 1. Run the setup wizard
-claude-backup init
+claude-code-backup init
 
 # 2. Do your first manual backup
-claude-backup push
+claude-code-backup push
 
 # 3. Install the background service (auto-syncs on every login)
-claude-backup service install
+claude-code-backup service install
 
 # 4. Check everything is working
-claude-backup status
+claude-code-backup status
 ```
 
 That's it. From this point the watcher runs silently in the background and pushes every change to your private GitHub repo.
@@ -81,20 +81,20 @@ That's it. From this point the watcher runs silently in the background and pushe
 ## Setup Wizard (`init`)
 
 ```
-$ claude-backup init
+$ claude-code-backup init
 
 Claude Backup — Setup Wizard
 
 Step 1 of 4 — GitHub Personal Access Token
 
-  claude-backup needs a PAT with "repo" scope to create
+  claude-code-backup needs a PAT with "repo" scope to create
   and push to a private GitHub repository on your behalf.
 
   Create your token here:
   https://github.com/settings/tokens/new
 
   Instructions:
-  1. Note name → e.g. "claude-backup"
+  1. Note name → e.g. "claude-code-backup"
   2. Expiration → your preference (No expiration is fine)
   3. Scopes → tick  repo  (the top-level checkbox)
   4. Click "Generate token" and copy the value
@@ -102,7 +102,7 @@ Step 1 of 4 — GitHub Personal Access Token
 ? Paste your GitHub PAT: ****
 
 Step 2 of 4 — Repository & Branch
-? GitHub repo name (e.g. yourname/claude-backup): yourname/claude-backup
+? GitHub repo name (e.g. yourname/claude-code-backup): yourname/claude-code-backup
 ? Branch name: main
 
 Step 3 of 4 — Watched Directories & Filters
@@ -114,37 +114,37 @@ Step 4 of 4 — Project CLAUDE.md Files
 ? Project root directories with CLAUDE.md (blank to skip): /Users/you/projects/my-app
 
 ✔ Config saved
-✔ Created: github.com/yourname/claude-backup
+✔ Created: github.com/yourname/claude-code-backup
 ✔ Repo cloned
 ✔ GitHub setup complete
 ```
 
 The wizard:
 - Creates the GitHub repo as **private** if it doesn't exist
-- Clones it locally to `~/.config/claude-backup/repo/`
+- Clones it locally to `~/.config/claude-code-backup/repo/`
 - Writes a detailed `README.md` into your backup repo documenting the structure and restore process
 
 ---
 
 ## Command Reference
 
-### `claude-backup init`
+### `claude-code-backup init`
 
 Interactive setup wizard. Run once to configure, or again at any time to update settings.
 
 ```bash
-claude-backup init
+claude-code-backup init
 ```
 
 ---
 
-### `claude-backup push`
+### `claude-code-backup push`
 
 Manually push a backup to GitHub right now.
 
 ```bash
-claude-backup push                          # auto commit message: "backup: <ISO timestamp>"
-claude-backup push -m "before OS upgrade"  # custom commit message
+claude-code-backup push                          # auto commit message: "backup: <ISO timestamp>"
+claude-code-backup push -m "before OS upgrade"  # custom commit message
 ```
 
 What it does:
@@ -158,17 +158,17 @@ What it does:
 
 ---
 
-### `claude-backup pull`
+### `claude-code-backup pull`
 
 Restore files from your GitHub backup.
 
 ```bash
-claude-backup pull                # restore the latest backup
-claude-backup pull --history      # browse commits, pick a specific version
-claude-backup pull --dry-run      # preview what would change — no files written
+claude-code-backup pull                # restore the latest backup
+claude-code-backup pull --history      # browse commits, pick a specific version
+claude-code-backup pull --dry-run      # preview what would change — no files written
 ```
 
-**Safety:** before touching any file, `pull` creates a timestamped snapshot of your current state at `~/.config/claude-backup/pre-restore-<timestamp>/`. You can always manually recover from there.
+**Safety:** before touching any file, `pull` creates a timestamped snapshot of your current state at `~/.config/claude-code-backup/pre-restore-<timestamp>/`. You can always manually recover from there.
 
 Restore works on:
 - **Same machine** — recover from accidental deletion
@@ -177,13 +177,13 @@ Restore works on:
 
 ---
 
-### `claude-backup watch`
+### `claude-code-backup watch`
 
 Start the real-time file watcher. Normally this runs via the launchd service — use this command to run it manually in the foreground.
 
 ```bash
-claude-backup watch                   # file watcher (recommended)
-claude-backup watch --interval 5      # poll every 5 minutes instead
+claude-code-backup watch                   # file watcher (recommended)
+claude-code-backup watch --interval 5      # poll every 5 minutes instead
 ```
 
 The watcher:
@@ -194,12 +194,12 @@ The watcher:
 
 ---
 
-### `claude-backup status`
+### `claude-code-backup status`
 
 Show the current state of your backup.
 
 ```
-$ claude-backup status
+$ claude-code-backup status
 
 Claude Backup Status
 
@@ -211,7 +211,7 @@ Project CLAUDE.md dirs:
   /Users/you/projects/my-app
 CLAUDE.md files: 1
 
-GitHub: yourname/claude-backup  [main]
+GitHub: yourname/claude-code-backup  [main]
 Last backup:  2026-05-18 10:34:22
 Commit:       a3f9c1d  backup: 2026-05-18T10:34:22.000Z
 Sync status:  Up to date
@@ -221,43 +221,43 @@ Auto-sync service: running (PID 4821)
 
 ---
 
-### `claude-backup service <action>`
+### `claude-code-backup service <action>`
 
 Manage the macOS launchd background service.
 
 ```bash
-claude-backup service install     # write plist, load service, start immediately
-claude-backup service uninstall   # stop service, remove plist
-claude-backup service status      # check if running, show PID
-claude-backup service logs        # tail the watcher log in real-time
+claude-code-backup service install     # write plist, load service, start immediately
+claude-code-backup service uninstall   # stop service, remove plist
+claude-code-backup service status      # check if running, show PID
+claude-code-backup service logs        # tail the watcher log in real-time
 ```
 
 The service plist is installed at:
 
 ```
-~/Library/LaunchAgents/com.claude-backup.watch.plist
+~/Library/LaunchAgents/com.claude-code-backup.watch.plist
 ```
 
 Key behaviour:
 - `RunAtLoad: true` — starts immediately when installed, and on every login
 - `KeepAlive: true` — launchd restarts the watcher automatically if it crashes
 - `ThrottleInterval: 10` — prevents restart storms
-- Logs go to `~/.config/claude-backup/watch.log`
-- Errors go to `~/.config/claude-backup/watch.error.log`
+- Logs go to `~/.config/claude-code-backup/watch.log`
+- Errors go to `~/.config/claude-code-backup/watch.error.log`
 
 ---
 
-### `claude-backup config <action>`
+### `claude-code-backup config <action>`
 
 View or modify configuration without re-running `init`.
 
 ```bash
-claude-backup config show                             # print config (PAT masked)
-claude-backup config set auto_sync.debounce_ms 3000   # change a value
-claude-backup config add-dir <path>                   # fully mirror an extra directory
-claude-backup config remove-dir <path>
-claude-backup config add-project <path>               # back up only CLAUDE.md from a project root
-claude-backup config remove-project <path>
+claude-code-backup config show                             # print config (PAT masked)
+claude-code-backup config set auto_sync.debounce_ms 3000   # change a value
+claude-code-backup config add-dir <path>                   # fully mirror an extra directory
+claude-code-backup config remove-dir <path>
+claude-code-backup config add-project <path>               # back up only CLAUDE.md from a project root
+claude-code-backup config remove-project <path>
 ```
 
 ---
@@ -271,7 +271,7 @@ Claude Code lets you put a `CLAUDE.md` file at any project root. Claude reads it
 ```bash
 # Add a project during init (Step 4)
 # Or add it later:
-claude-backup config add-project /Users/you/projects/my-app
+claude-code-backup config add-project /Users/you/projects/my-app
 ```
 
 In the backup repo, it appears as:
@@ -315,7 +315,7 @@ Every push is a Git commit — you get full history, diffs, and can restore any 
 
 ## Configuration Reference
 
-Config file: `~/.config/claude-backup/config.json` (chmod 600)
+Config file: `~/.config/claude-code-backup/config.json` (chmod 600)
 
 | Key | Type | Default | Description |
 |---|---|---|---|
@@ -329,7 +329,7 @@ Config file: `~/.config/claude-backup/config.json` (chmod 600)
 
 Default excludes: `settings.local.json`, `*.log`, `.DS_Store`
 
-Local repo clone: `~/.config/claude-backup/repo/`
+Local repo clone: `~/.config/claude-code-backup/repo/`
 
 ---
 
@@ -338,22 +338,22 @@ Local repo clone: `~/.config/claude-backup/repo/`
 ### After accidental deletion (same machine)
 
 ```bash
-claude-backup pull
+claude-code-backup pull
 ```
 
 ### Setting up a new machine
 
 ```bash
 npm install -g claude-code-backup
-claude-backup init      # use same repo name, generate a new PAT
-claude-backup pull
-claude-backup service install
+claude-code-backup init      # use same repo name, generate a new PAT
+claude-code-backup pull
+claude-code-backup service install
 ```
 
 ### Restoring a specific historical version
 
 ```bash
-claude-backup pull --history
+claude-code-backup pull --history
 ```
 
 Shows a list of all commits — pick the one you want by timestamp and message.
@@ -363,7 +363,7 @@ Shows a list of all commits — pick the one you want by timestamp and message.
 Every `pull` creates a safety snapshot first:
 
 ```bash
-ls ~/.config/claude-backup/pre-restore-*/
+ls ~/.config/claude-code-backup/pre-restore-*/
 # Copy what you need back manually
 ```
 
@@ -371,34 +371,34 @@ ls ~/.config/claude-backup/pre-restore-*/
 
 ## Troubleshooting
 
-**"Not configured. Run: claude-backup init"**
-Config file is missing. Re-run `claude-backup init`.
+**"Not configured. Run: claude-code-backup init"**
+Config file is missing. Re-run `claude-code-backup init`.
 
 **Push fails with 401 or authentication error**
 Your PAT may have expired. Generate a new one and update:
 ```bash
-claude-backup config set github.pat <new-token>
-claude-backup service install   # restart the watcher with the new token
+claude-code-backup config set github.pat <new-token>
+claude-code-backup service install   # restart the watcher with the new token
 ```
 
 **Service shows "loaded but not running"**
 ```bash
-claude-backup service logs
-cat ~/.config/claude-backup/watch.error.log
-claude-backup service install   # reinstall to reset
+claude-code-backup service logs
+cat ~/.config/claude-code-backup/watch.error.log
+claude-code-backup service install   # reinstall to reset
 ```
 
 **Changes not being detected**
 Confirm the directory is watched:
 ```bash
-claude-backup config show
-claude-backup config add-dir /missing/path
+claude-code-backup config show
+claude-code-backup config add-dir /missing/path
 ```
 
 **Want to watch a project directory without backing up all source code**
 Use `add-project` instead of `add-dir` — it only collects the `CLAUDE.md` file:
 ```bash
-claude-backup config add-project /path/to/project
+claude-code-backup config add-project /path/to/project
 ```
 
 ---
@@ -417,7 +417,7 @@ claude-backup config add-project /path/to/project
   └─ grab CLAUDE.md from claude_md_dirs
       │
       ▼
-  copy to ~/.config/claude-backup/repo/
+  copy to ~/.config/claude-code-backup/repo/
   write backup-manifest.json
   write README.md
       │
@@ -425,7 +425,7 @@ claude-backup config add-project /path/to/project
   git add -A → git commit → git push
       │
       ▼
-  github.com/you/claude-backup (private)
+  github.com/you/claude-code-backup (private)
 ```
 
 ---
@@ -438,7 +438,7 @@ Contributions are welcome. Please open an issue first for any significant change
 git clone https://github.com/mafzal9/claude-code-backup.git
 cd claude-code-backup
 npm install
-node bin/claude-backup.js --help
+node bin/claude-code-backup.js --help
 ```
 
 Ideas for future contributions:

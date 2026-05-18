@@ -65,7 +65,7 @@ export async function runStatus() {
       console.log(`${chalk.bold('Sync status:')}  ${chalk.green('Up to date')}`);
     }
   } else {
-    console.log(chalk.dim('  No backups yet. Run: claude-backup push'));
+    console.log(chalk.dim('  No backups yet. Run: claude-code-backup push'));
   }
 
   // Launchd service
@@ -73,7 +73,7 @@ export async function runStatus() {
   const svcColor = svc.startsWith('running') ? chalk.green : chalk.yellow;
   console.log(`\n${chalk.bold('Auto-sync service:')} ${svcColor(svc)}`);
   if (!svc.startsWith('running')) {
-    console.log(chalk.dim('  Run: claude-backup service install'));
+    console.log(chalk.dim('  Run: claude-code-backup service install'));
   }
 
   console.log('');

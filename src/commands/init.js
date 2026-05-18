@@ -13,12 +13,12 @@ export async function runInit() {
 
   // ── Step 1: GitHub PAT ───────────────────────────────────────────────────
   console.log(chalk.bold.underline('Step 1 of 4 — GitHub Personal Access Token') + '\n');
-  console.log('claude-backup needs a PAT with ' + chalk.cyan('"repo"') + ' scope to create');
+  console.log('claude-code-backup needs a PAT with ' + chalk.cyan('"repo"') + ' scope to create');
   console.log('and push to a private GitHub repository on your behalf.\n');
   console.log(chalk.bold('  Create your token here:'));
   console.log('  ' + chalk.underline.blue('https://github.com/settings/tokens/new') + '\n');
   console.log(chalk.dim('  Instructions:'));
-  console.log(chalk.dim('  1. Note name → e.g. "claude-backup"'));
+  console.log(chalk.dim('  1. Note name → e.g. "claude-code-backup"'));
   console.log(chalk.dim('  2. Expiration → your preference (No expiration is fine)'));
   console.log(chalk.dim('  3. Scopes → tick  ') + chalk.cyan('repo') + chalk.dim('  (the top-level checkbox covers everything needed)'));
   console.log(chalk.dim('  4. Click "Generate token" and copy the value\n'));
@@ -44,7 +44,7 @@ export async function runInit() {
     {
       type: 'input',
       name: 'repo',
-      message: 'GitHub repo name (e.g. yourname/claude-backup):',
+      message: 'GitHub repo name (e.g. yourname/claude-code-backup):',
       default: existing?.github?.repo || '',
       validate: v =>
         /^[\w.-]+\/[\w.-]+$/.test(v.trim()) || 'Format must be owner/repo',
@@ -122,14 +122,14 @@ export async function runInit() {
   };
 
   saveConfig(config);
-  log.success('Config saved  (~/.config/claude-backup/config.json, chmod 600)');
+  log.success('Config saved  (~/.config/claude-code-backup/config.json, chmod 600)');
 
   try {
     await ensureRepo(config);
     log.success('GitHub setup complete\n');
     log.info('Next steps:');
-    log.dim('  claude-backup push                — do your first backup now');
-    log.dim('  claude-backup service install     — enable auto-sync on login');
+    log.dim('  claude-code-backup push                — do your first backup now');
+    log.dim('  claude-code-backup service install     — enable auto-sync on login');
   } catch (err) {
     log.error(`GitHub setup failed: ${err.message}`);
     if (process.env.DEBUG) console.error(err);

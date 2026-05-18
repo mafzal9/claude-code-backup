@@ -63,7 +63,7 @@ async function unloadService() {
 
 async function installService() {
   const nodePath = process.execPath;   // path to the node binary running this script
-  const scriptPath = process.argv[1];  // absolute path to claude-backup.js
+  const scriptPath = process.argv[1];  // absolute path to claude-code-backup.js
 
   const plist = buildPlist(nodePath, scriptPath);
   writeFileSync(LAUNCHD_PLIST, plist, 'utf8');
@@ -106,7 +106,7 @@ async function uninstallService() {
 async function serviceStatus() {
   if (!existsSync(LAUNCHD_PLIST)) {
     log.warn('Service is not installed');
-    log.dim('Run: claude-backup service install');
+    log.dim('Run: claude-code-backup service install');
     return;
   }
 
