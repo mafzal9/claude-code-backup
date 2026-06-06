@@ -1,6 +1,6 @@
 {
   "name": "claude-code-backup",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Backup and auto-sync Claude Code memory, settings, and CLAUDE.md files to a private GitHub repo — with real-time file watching and macOS launchd auto-start",
   "type": "module",
   "bin": {
@@ -30,7 +30,6 @@
   ],
   "author": {
     "name": "Muhammad Afzal",
-    "email": "digitalstorks00@gmail.com",
     "url": "https://github.com/mafzal9"
   },
   "license": "MIT",
